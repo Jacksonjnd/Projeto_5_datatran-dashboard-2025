@@ -196,18 +196,6 @@ Por exemplo:
 
 Por isso, os indicadores devem ser usados como apoio para investigação e priorização, e não como prova isolada de causalidade.
 
-## Próximos passos
-
-Possíveis evoluções do projeto:
-
-- incluir séries históricas de anos anteriores;
-- calcular tendências por BR e município;
-- incluir mapas geográficos;
-- incorporar dados de fluxo de veículos;
-- criar análises comparativas por período;
-- adicionar modelos estatísticos para avaliar fatores associados à gravidade;
-- migrar a camada de dados para uma arquitetura com API ou banco de dados.
-
 ## Autor
 
 Projeto desenvolvido como parte de portfólio em **Data Analytics**, com foco em transformar dados públicos em análises visuais, indicadores executivos e informações úteis para tomada de decisão.
