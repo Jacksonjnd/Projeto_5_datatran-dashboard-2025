@@ -112,4 +112,4 @@ Por isso, os resultados devem ser utilizados como apoio à investigação e à p
 
 ## Autor
 
-Projeto desenvolvido por **Jackson JND** como parte de portfólio em **Data Analytics**, com foco em transformar dados públicos em informações úteis para tomada de decisão.
+Projeto desenvolvido por ** mim (Jackson)** como parte de portfólio em **Data Analytics**, com foco em transformar dados em informações úteis para tomada de decisão.
