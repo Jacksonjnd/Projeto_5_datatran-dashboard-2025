@@ -7,8 +7,10 @@ O dashboard foi desenvolvido para transformar uma base extensa de ocorrências e
 A proposta é ir além da visualização dos números e destacar os pontos que merecem maior atenção.
 
 ## Acesse o dashboard
-
 **[Visualizar dashboard online](https://jacksonjnd.github.io/Projeto_5_datatran-dashboard-2025/)**
+
+## Relatório executivo
+**[Visualizar relatório executivo em PDF](./Relatorio_Executivo_DATATRAN_2025.pdf)**
 
 ## Visão geral da base
 
