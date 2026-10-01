@@ -172,16 +172,6 @@ Não é necessário instalar Python, banco de dados ou servidor para visualizar 
 
 > É necessária conexão com a internet caso as bibliotecas externas estejam sendo carregadas por CDN.
 
-## Publicação
-
-O projeto pode ser publicado gratuitamente pelo **GitHub Pages**.
-
-Após ativar o Pages no repositório, o dashboard ficará disponível em um endereço semelhante a:
-
-```text
-https://seuusuario.github.io/datatran-dashboard-2025/
-```
-
 ## Limitações da análise
 
 Os dados permitem identificar padrões, concentrações e associações, mas não permitem concluir, por si só, relação direta de causa e efeito.
