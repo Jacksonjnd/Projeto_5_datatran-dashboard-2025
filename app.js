@@ -1,0 +1,97 @@
+(() => {
+'use strict';
+const D=window.DASH_DATA, R=D.rows, X=D.dicts;
+const I={date:0,hour:1,dow:2,uf:3,br:4,mun:5,cause:6,type:7,cls:8,weather:9,road:10,soil:11,phase:12,deaths:13,injured:14,severe:15,people:16,vehicles:17};
+const $=s=>document.querySelector(s), nf=new Intl.NumberFormat('pt-BR'), df1=new Intl.NumberFormat('pt-BR',{minimumFractionDigits:1,maximumFractionDigits:1});
+const IPCA_FACTOR_2014_2025=1.823703650713;
+const COST={fatal:646762.94*IPCA_FACTOR_2014_2025,injury:90182.71*IPCA_FACTOR_2014_2025,noVictim:23062.97*IPCA_FACTOR_2014_2025};
+const REDUCAO_CENARIO=.10;
+const rowCost=r=>r[I.deaths]>0?COST.fatal:r[I.injured]>0?COST.injury:COST.noVictim;
+const brlCompact=v=>{const a=Math.abs(v);if(a>=1e9)return 'R$ '+df1.format(v/1e9)+' bi';if(a>=1e6)return 'R$ '+df1.format(v/1e6)+' mi';if(a>=1e3)return 'R$ '+df1.format(v/1e3)+' mil';return new Intl.NumberFormat('pt-BR',{style:'currency',currency:'BRL',maximumFractionDigits:0}).format(v)};
+const charts={};
+const COLORS={cyan:'#37e4ff',violet:'#9b6cff',amber:'#ffbf5b',red:'#ff5d76',blue:'#5ca9ff',grid:'rgba(140,185,235,.09)',tick:'#8ea2bc'};
+Chart.defaults.color=COLORS.tick; Chart.defaults.borderColor=COLORS.grid; Chart.defaults.font.family='Inter, system-ui, sans-serif';
+const gradient=(ctx,a,b)=>{const g=ctx.createLinearGradient(0,0,0,360);g.addColorStop(0,a);g.addColorStop(1,b);return g};
+function intDate(v){return Number(v.replaceAll('-',''))}
+function fillSelect(el,items,label=x=>x,value=x=>x){const frag=document.createDocumentFragment();items.forEach(x=>{const o=document.createElement('option');o.value=value(x);o.textContent=label(x);frag.append(o)});el.append(frag)}
+function setupFilters(){
+ fillSelect($('#fUf'),X.uf); fillSelect($('#fMunicipio'),X.municipio); fillSelect($('#fClassificacao'),X.classificacao_acidente); fillSelect($('#fCausa'),X.causa_acidente); fillSelect($('#fTipo'),X.tipo_acidente); fillSelect($('#fClima'),X.condicao_metereologica);
+ const brs=[...new Set(R.map(r=>r[I.br]).filter(v=>v!==null))].sort((a,b)=>a-b);fillSelect($('#fBr'),brs,x=>'BR-'+x);
+ $('#metaRegistros').textContent=nf.format(D.meta.total_registros)+' registros';
+}
+function currentFilters(){return {ini:intDate($('#fDataIni').value),fim:intDate($('#fDataFim').value),uf:$('#fUf').value,mun:$('#fMunicipio').value,br:$('#fBr').value,cls:$('#fClassificacao').value,cause:$('#fCausa').value,type:$('#fTipo').value,weather:$('#fClima').value}}
+function filterRows(){const f=currentFilters(), u=f.uf?X.uf.indexOf(f.uf):-1,m=f.mun?X.municipio.indexOf(f.mun):-1,c=f.cls?X.classificacao_acidente.indexOf(f.cls):-1,ca=f.cause?X.causa_acidente.indexOf(f.cause):-1,t=f.type?X.tipo_acidente.indexOf(f.type):-1,w=f.weather?X.condicao_metereologica.indexOf(f.weather):-1,br=f.br?Number(f.br):null;return R.filter(r=>r[0]>=f.ini&&r[0]<=f.fim&&(u<0||r[3]===u)&&(m<0||r[5]===m)&&(br===null||r[4]===br)&&(c<0||r[8]===c)&&(ca<0||r[6]===ca)&&(t<0||r[7]===t)&&(w<0||r[9]===w))}
+function blankAgg(){return {n:0,deaths:0,injured:0,severe:0,vehicles:0,fatal:0,cost:0,month:Array.from({length:12},()=>({acidentes:0,mortos:0,feridos:0,fatais:0})),cls:new Map(),uf:new Map(),cause:new Map(),type:new Map(),dow:new Map(),band:new Map(),weather:new Map(),road:new Map(),soil:new Map(),mun:new Map(),br:new Map()}}
+function inc(map,key,r){let o=map.get(key);if(!o)o={n:0,deaths:0,severe:0,injured:0,cost:0};o.n++;o.deaths+=r[13];o.severe+=r[15];o.injured+=r[14];o.cost+=rowCost(r);map.set(key,o)}
+function aggregate(rows){const a=blankAgg();for(const r of rows){a.n++;a.deaths+=r[13];a.injured+=r[14];a.severe+=r[15];a.vehicles+=r[17];a.cost+=rowCost(r);if(r[13]>0)a.fatal++;const m=Math.floor((r[0]%10000)/100)-1, mo=a.month[m];mo.acidentes++;mo.mortos+=r[13];mo.feridos+=r[14];if(r[13]>0)mo.fatais++;inc(a.cls,r[8],r);inc(a.uf,r[3],r);inc(a.cause,r[6],r);inc(a.type,r[7],r);inc(a.dow,r[2],r);inc(a.weather,r[9],r);inc(a.road,r[10],r);inc(a.soil,r[11],r);inc(a.mun,r[5],r);if(r[4]!=null)inc(a.br,r[4],r);let b=r[1]<6?'Madrugada':r[1]<12?'Manhã':r[1]<18?'Tarde':'Noite';inc(a.band,b,r)}return a}
+function animateNumber(el,end,dec=0){const start=performance.now(),dur=520;function tick(now){const p=Math.min(1,(now-start)/dur),e=1-Math.pow(1-p,3),v=end*e;el.textContent=dec?df1.format(v):nf.format(Math.round(v));if(p<1)requestAnimationFrame(tick)}requestAnimationFrame(tick)}
+function updateKpis(a){animateNumber($('#kpiAcidentes'),a.n);animateNumber($('#kpiMortes'),a.deaths);animateNumber($('#kpiFeridos'),a.injured);animateNumber($('#kpiGraves'),a.severe);animateNumber($('#kpiFatais'),a.fatal);animateNumber($('#kpiVeiculos'),a.vehicles);$('#kpiAcidentesSub').textContent=(a.n/365).toLocaleString('pt-BR',{maximumFractionDigits:1})+' acidentes/dia';$('#kpiMortesSub').textContent=(a.n?df1.format(a.deaths/a.n*100):'0,0')+' mortes / 100 acidentes';$('#kpiFeridosSub').textContent=(a.n?df1.format(a.injured/a.n*100):'0,0')+' feridos / 100 acidentes';$('#kpiGravesSub').textContent=(a.injured?df1.format(a.severe/a.injured*100):'0,0')+'% dos feridos';$('#kpiFataisSub').textContent=(a.n?df1.format(a.fatal/a.n*100):'0,0')+'% dos acidentes';$('#kpiVeiculosSub').textContent=(a.n?df1.format(a.vehicles/a.n):'0,0')+' veículos/acidente'}
+function baseOptions(horizontal=false){return {responsive:true,maintainAspectRatio:false,animation:{duration:650,easing:'easeOutQuart'},interaction:{mode:'nearest',intersect:false},plugins:{legend:{display:false},tooltip:{backgroundColor:'rgba(4,10,20,.95)',borderColor:'rgba(55,228,255,.22)',borderWidth:1,padding:12}},scales:horizontal?{x:{grid:{color:COLORS.grid},ticks:{color:COLORS.tick}},y:{grid:{display:false},ticks:{color:COLORS.tick}}}:{x:{grid:{display:false},ticks:{color:COLORS.tick}},y:{grid:{color:COLORS.grid},ticks:{color:COLORS.tick}}}}}
+function setChart(id,type,data,options){if(charts[id])charts[id].destroy();const c=document.getElementById(id).getContext('2d');charts[id]=new Chart(c,{type,data,options});return c}
+function updateCharts(a){
+ const months=['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],metric=$('#metricTemporal').value,lab={acidentes:'Acidentes',mortos:'Mortes',feridos:'Feridos',fatais:'Acidentes com morte'}[metric];let c=document.getElementById('chartTemporal').getContext('2d');setChart('chartTemporal','line',{labels:months,datasets:[{label:lab,data:a.month.map(x=>x[metric]),borderColor:COLORS.cyan,backgroundColor:gradient(c,'rgba(55,228,255,.34)','rgba(155,108,255,.02)'),fill:true,tension:.35,borderWidth:2.2,pointRadius:2,pointHoverRadius:5}]},{...baseOptions(),plugins:{...baseOptions().plugins,legend:{display:false}}});
+ const cls=[...a.cls.entries()].map(([k,v])=>({name:X.classificacao_acidente[k],value:v.n})).sort((x,y)=>y.value-x.value);setChart('chartClassificacao','doughnut',{labels:cls.map(x=>x.name),datasets:[{data:cls.map(x=>x.value),backgroundColor:[COLORS.cyan,COLORS.violet,COLORS.amber,COLORS.red],borderColor:'rgba(4,9,18,.85)',borderWidth:3,hoverOffset:8}]},{responsive:true,maintainAspectRatio:false,cutout:'70%',plugins:{legend:{position:'bottom',labels:{boxWidth:10,usePointStyle:true,padding:14}},tooltip:{backgroundColor:'rgba(4,10,20,.95)'}}});
+ rankedChart('chartUf',a.uf,X.uf,$('#metricUf').value,10);
+ const scatter=[...a.uf.entries()].filter(([,v])=>v.n>=30).map(([k,v])=>({x:v.n,y:v.deaths/v.n*100,label:X.uf[k]}));setChart('chartScatter','scatter',{datasets:[{data:scatter,pointBackgroundColor:'rgba(155,108,255,.72)',pointBorderColor:COLORS.cyan,pointRadius:5,pointHoverRadius:8}]},{...baseOptions(),plugins:{legend:{display:false},tooltip:{callbacks:{label:ctx=>`${ctx.raw.label}: ${nf.format(ctx.raw.x)} acidentes • ${df1.format(ctx.raw.y)} mortes/100`}}},scales:{x:{title:{display:true,text:'Acidentes'},grid:{color:COLORS.grid}},y:{title:{display:true,text:'Mortes / 100 acidentes'},grid:{color:COLORS.grid}}}});
+ rankedChart('chartCausa',a.cause,X.causa_acidente,$('#metricCausa').value,10); rankedChart('chartTipo',a.type,X.tipo_acidente,$('#metricTipo').value,10);
+ simpleMapChart('chartDia',a.dow,['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'],X.dia_semana);simpleMapChart('chartFaixa',a.band,['Madrugada','Manhã','Tarde','Noite']);topSimple('chartClima',a.weather,X.condicao_metereologica,6);topSimple('chartPista',a.road,X.tipo_pista,8);topSimple('chartSolo',a.soil,X.uso_solo,8);
+}
+function rankedChart(id,map,dict,metric,limit){const arr=[...map.entries()].map(([k,v])=>({label:dict[k],n:v.n,deaths:v.deaths,severe:v.severe,letalidade:v.n?v.deaths/v.n*100:0}));const field=metric==='mortos'?'deaths':metric==='graves'?'severe':metric==='letalidade'?'letalidade':'n';arr.sort((a,b)=>b[field]-a[field]);const top=arr.slice(0,limit).reverse();const ctx=document.getElementById(id).getContext('2d');setChart(id,'bar',{labels:top.map(x=>x.label),datasets:[{data:top.map(x=>x[field]),backgroundColor:gradient(ctx,'rgba(55,228,255,.85)','rgba(155,108,255,.62)'),borderColor:'rgba(55,228,255,.5)',borderWidth:1,borderRadius:7}]},{...baseOptions(true),indexAxis:'y',plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>field==='letalidade'?df1.format(c.raw)+' mortes/100':nf.format(c.raw)}}}})}
+function simpleMapChart(id,map,order,dict=null){const vals=order.map(name=>{let key=dict?dict.indexOf(name):name;return map.get(key)?.n||0});const ctx=document.getElementById(id).getContext('2d');setChart(id,'bar',{labels:order.map(x=>x.replace('-feira','')),datasets:[{data:vals,backgroundColor:gradient(ctx,'rgba(55,228,255,.82)','rgba(155,108,255,.48)'),borderRadius:6}]},baseOptions())}
+function topSimple(id,map,dict,limit){let arr=[...map.entries()].map(([k,v])=>({label:dict[k],v:v.n})).sort((a,b)=>b.v-a.v).slice(0,limit).reverse();const ctx=document.getElementById(id).getContext('2d');setChart(id,'bar',{labels:arr.map(x=>x.label),datasets:[{data:arr.map(x=>x.v),backgroundColor:gradient(ctx,'rgba(255,191,91,.78)','rgba(155,108,255,.48)'),borderRadius:6}]},{...baseOptions(true),indexAxis:'y'})}
+function updateTables(a){let risk=[...a.cause.entries()].map(([k,v])=>({name:X.causa_acidente[k],...v,rate:v.n?v.deaths/v.n*100:0})).filter(x=>x.n>=20).sort((x,y)=>y.deaths-x.deaths).slice(0,12);$('#riskBody').innerHTML=risk.map((x,i)=>`<tr><td>${i+1}</td><td>${x.name}</td><td>${nf.format(x.n)}</td><td>${nf.format(x.deaths)}</td><td>${nf.format(x.severe)}</td><td class="${x.rate>=20?'risk-hot':x.rate>=10?'risk-mid':'risk-low'}">${df1.format(x.rate)}</td></tr>`).join('');
+ const mode=$('#rankingModo').value,map=mode==='municipio'?a.mun:a.br,dict=mode==='municipio'?X.municipio:null;let arr=[...map.entries()].map(([k,v])=>({label:mode==='municipio'?dict[k]:'BR-'+k,...v,rate:v.n?v.deaths/v.n*100:0})).sort((x,y)=>y.n-x.n).slice(0,15);$('#rankingLabel').textContent=mode==='municipio'?'Município':'BR';$('#rankingBody').innerHTML=arr.map((x,i)=>`<tr><td>${i+1}</td><td>${x.label}</td><td>${nf.format(x.n)}</td><td>${nf.format(x.deaths)}</td><td>${nf.format(x.severe)}</td><td>${df1.format(x.rate)}</td></tr>`).join('')}
+
+function topEntry(map,dict,field='cost',minN=1){
+ const arr=[...map.entries()].map(([k,v])=>({key:k,label:dict?dict[k]:k,...v,rate:v.n?v.deaths/v.n*100:0})).filter(x=>x.n>=minN).sort((a,b)=>(b[field]||0)-(a[field]||0));
+ return arr[0]||null;
+}
+function updateActions(a){
+ const cause=topEntry(a.cause,X.causa_acidente,'cost',5), type=topEntry(a.type,X.tipo_acidente,'cost',5), uf=topEntry(a.uf,X.uf,'cost',5);
+ const set=(prefix,item,kind)=>{
+  if(!item){$('#acao'+prefix+'Titulo').textContent='Sem dados suficientes';$('#acao'+prefix+'Texto').textContent='Amplie o recorte dos filtros para gerar uma prioridade.';$('#acao'+prefix+'Impacto').textContent='—';return}
+  let title='',txt='';
+  if(kind==='cause'){title='Reduzir '+item.label.toLowerCase();txt=`O foco reúne ${nf.format(item.n)} acidentes e ${nf.format(item.deaths)} mortes no recorte atual. É a causa com maior exposição econômica estimada.`}
+  if(kind==='type'){title='Atacar '+item.label.toLowerCase();txt=`Esse tipo concentra ${nf.format(item.n)} ocorrências e ${nf.format(item.deaths)} mortes. Reduzir sua frequência atua diretamente sobre um dos maiores blocos de custo social.`}
+  if(kind==='uf'){title='Concentrar intervenção em '+item.label;txt=`A UF soma ${nf.format(item.n)} acidentes e ${nf.format(item.deaths)} mortes no recorte, liderando a exposição econômica estimada entre os estados.`}
+  $('#acao'+prefix+'Titulo').textContent=title;$('#acao'+prefix+'Texto').textContent=txt;$('#acao'+prefix+'Impacto').textContent=brlCompact(item.cost*REDUCAO_CENARIO);
+ };
+ set('Causa',cause,'cause');set('Tipo',type,'type');set('Uf',uf,'uf');
+}
+function pct(v,total){return total?df1.format(v/total*100)+'%':'0,0%'}
+function insight(el,html){const node=$(el);if(node)node.innerHTML=html}
+function metricValue(v,metric){return metric==='mortos'?v.deaths:metric==='graves'?v.severe:metric==='letalidade'?(v.n?v.deaths/v.n*100:0):v.n}
+function updateInsights(a){
+ if(!a.n){['Temporal','Classificacao','Uf','Scatter','Causa','Tipo','Dia','Faixa','Clima','Pista','Solo'].forEach(x=>insight('#insight'+x,'Não há registros suficientes para interpretar este recorte.'));return}
+ const months=['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'];
+ const tm=$('#metricTemporal').value, vals=a.month.map(x=>x[tm]), max=Math.max(...vals), mi=vals.indexOf(max), avg=vals.reduce((x,y)=>x+y,0)/(vals.filter(x=>x>0).length||1);
+ insight('#insightTemporal',`<strong>${months[mi]}</strong> concentra o pico do indicador selecionado, ${avg?df1.format((max/avg-1)*100):'0,0'}% acima da média mensal do recorte — um sinal de quando reforçar prevenção e capacidade operacional.`);
+ const cls=[...a.cls.entries()].map(([k,v])=>({label:X.classificacao_acidente[k]||'Não informado',...v})).sort((x,y)=>y.n-x.n), c0=cls[0];
+ insight('#insightClassificacao',`<strong>${c0?.label||'Sem classificação'}</strong> responde por ${c0?pct(c0.n,a.n):'0,0%'} das ocorrências; ${pct(a.fatal,a.n)} dos acidentes tiveram ao menos uma morte, indicando o tamanho do núcleo de maior gravidade.`);
+ const mu=$('#metricUf').value, ufs=[...a.uf.entries()].map(([k,v])=>({label:X.uf[k],...v,value:metricValue(v,mu)})).sort((x,y)=>y.value-x.value), u0=ufs[0];
+ const metricName={acidentes:'acidentes',mortos:'mortes',graves:'feridos graves',letalidade:'letalidade'}[mu];
+ insight('#insightUf',`<strong>${u0?.label||'—'}</strong> lidera em ${metricName} no recorte. Isso aponta onde a priorização territorial pode concentrar mais resultado para a métrica escolhida.`);
+ const risk=[...a.uf.entries()].filter(([,v])=>v.n>=30).map(([k,v])=>({label:X.uf[k],...v,rate:v.deaths/v.n*100})).sort((x,y)=>y.rate-x.rate), rr=risk[0], vol=[...risk].sort((x,y)=>y.n-x.n)[0];
+ insight('#insightScatter',rr?`<strong>${rr.label}</strong> apresenta a maior letalidade entre UFs com pelo menos 30 ocorrências (${df1.format(rr.rate)} mortes/100), enquanto <strong>${vol.label}</strong> concentra o maior volume. Volume e severidade pedem estratégias diferentes.`:'O recorte é pequeno demais para uma comparação territorial robusta de volume e letalidade.');
+ const mc=$('#metricCausa').value, causes=[...a.cause.entries()].map(([k,v])=>({label:X.causa_acidente[k],...v,value:metricValue(v,mc)})).filter(x=>x.n>=1).sort((x,y)=>y.value-x.value), ca=causes[0];
+ insight('#insightCausa',`<strong>${ca?.label||'—'}</strong> é a principal causa pela métrica selecionada. Direcionar ações a esse comportamento ataca o fator com maior peso no recorte atual.`);
+ const mt=$('#metricTipo').value, types=[...a.type.entries()].map(([k,v])=>({label:X.tipo_acidente[k],...v,value:metricValue(v,mt)})).sort((x,y)=>y.value-x.value), ty=types[0];
+ insight('#insightTipo',`<strong>${ty?.label||'—'}</strong> ocupa o primeiro lugar pela métrica selecionada; o padrão mostra qual dinâmica de colisão deve receber maior atenção operacional.`);
+ const dowOrder=['segunda-feira','terça-feira','quarta-feira','quinta-feira','sexta-feira','sábado','domingo'], days=dowOrder.map(name=>({label:name,v:a.dow.get(X.dia_semana.indexOf(name))?.n||0})).sort((x,y)=>y.v-x.v);
+ insight('#insightDia',`<strong>${days[0].label}</strong> concentra mais ocorrências (${nf.format(days[0].v)}). A distribuição semanal ajuda a ajustar fiscalização e comunicação preventiva para os dias de maior pressão.`);
+ const bands=['Madrugada','Manhã','Tarde','Noite'].map(label=>({label,v:a.band.get(label)?.n||0})).sort((x,y)=>y.v-x.v);
+ insight('#insightFaixa',`A <strong>${bands[0].label.toLowerCase()}</strong> reúne ${pct(bands[0].v,a.n)} dos acidentes, indicando a faixa em que ações de prevenção podem alcançar maior volume de ocorrências.`);
+ const climates=[...a.weather.entries()].map(([k,v])=>({label:X.condicao_metereologica[k],...v})).sort((x,y)=>y.n-x.n), cl=climates[0];
+ insight('#insightClima',`<strong>${cl?.label||'—'}</strong> aparece em ${cl?pct(cl.n,a.n):'0,0%'} dos registros. A concentração mostra que segurança viária não pode depender apenas de ações para condições meteorológicas adversas.`);
+ const roads=[...a.road.entries()].map(([k,v])=>({label:X.tipo_pista[k],...v,rate:v.n?v.deaths/v.n*100:0})).sort((x,y)=>y.deaths-x.deaths), rd=roads[0];
+ insight('#insightPista',`<strong>${rd?.label||'—'}</strong> concentra ${rd?pct(rd.deaths,a.deaths):'0,0%'} das mortes do recorte e letalidade de ${rd?df1.format(rd.rate):'0,0'} por 100 acidentes — um sinal para priorizar intervenções de infraestrutura e fiscalização nesse ambiente.`);
+ const soils=[...a.soil.entries()].map(([k,v])=>({label:X.uso_solo[k],...v,rate:v.n?v.deaths/v.n*100:0})).sort((x,y)=>y.rate-x.rate), so=soils[0];
+ insight('#insightSolo',`<strong>${so?.label||'—'}</strong> apresenta a maior letalidade (${so?df1.format(so.rate):'0,0'} mortes/100 acidentes). O resultado sugere diferenciar a estratégia de segurança conforme o contexto territorial.`);
+}
+
+let lastAgg=null, timer=null;function refresh(reFilter=true){clearTimeout(timer);timer=setTimeout(()=>{const rows=reFilter?filterRows():null;lastAgg=reFilter?aggregate(rows):lastAgg;updateKpis(lastAgg);updateActions(lastAgg);updateCharts(lastAgg);updateInsights(lastAgg);updateTables(lastAgg)},60)}
+function syncMunicipios(){const uf=$('#fUf').value;if(!uf){[...$('#fMunicipio').options].forEach((o,i)=>o.hidden=false);return}const u=X.uf.indexOf(uf),valid=new Set();for(const r of R)if(r[I.uf]===u)valid.add(r[I.mun]);[...$('#fMunicipio').options].forEach((o,i)=>{if(i===0){o.hidden=false;return}o.hidden=!valid.has(X.municipio.indexOf(o.value))});if($('#fMunicipio').selectedOptions[0]?.hidden)$('#fMunicipio').value=''}
+function reset(){['#fUf','#fMunicipio','#fBr','#fClassificacao','#fCausa','#fTipo','#fClima'].forEach(x=>$(x).value='');$('#fDataIni').value='2025-01-01';$('#fDataFim').value='2025-12-31';syncMunicipios();refresh(true)}
+setupFilters();const filterIds=['#fDataIni','#fDataFim','#fUf','#fMunicipio','#fBr','#fClassificacao','#fCausa','#fTipo','#fClima'];filterIds.forEach(id=>$(id).addEventListener('change',()=>{if(id==='#fUf')syncMunicipios();refresh(true)}));['#metricTemporal','#metricUf','#metricCausa','#metricTipo'].forEach(id=>$(id).addEventListener('change',()=>refresh(false)));$('#rankingModo').addEventListener('change',()=>updateTables(lastAgg));$('#btnLimpar').addEventListener('click',reset);
+lastAgg=aggregate(R);updateKpis(lastAgg);updateActions(lastAgg);updateCharts(lastAgg);updateInsights(lastAgg);updateTables(lastAgg);setTimeout(()=>$('#loading').classList.add('hidden'),320);
+})();

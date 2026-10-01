@@ -1,0 +1,124 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Dashboard Executivo | Acidentes em Rodovias Federais 2025</title>
+  <meta name="description" content="Dashboard executivo com dados reais do DATATRAN 2025." />
+  <link rel="preconnect" href="https://cdn.jsdelivr.net" crossorigin>
+  <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+</head>
+<body>
+  <div class="ambient ambient-a"></div><div class="ambient ambient-b"></div>
+  <main class="shell">
+    <header class="hero glass reveal">
+      <div>
+        <div class="eyebrow">DATATRAN • PRF • 2025</div>
+        <h1>Acidentes em Rodovias Federais</h1>
+        <p>Visão executiva sobre volume, gravidade, distribuição geográfica e fatores associados às ocorrências.</p>
+      </div>
+      <div class="hero-meta">
+        <div><span>Período</span><strong>01 jan — 31 dez 2025</strong></div>
+        <div><span>Base</span><strong id="metaRegistros">72.529 registros</strong></div>
+      </div>
+    </header>
+
+    <section class="filters glass reveal" aria-label="Filtros do dashboard">
+      <div class="section-heading compact"><div><span class="kicker">Filtros</span><h2>Refine a análise</h2></div><button id="btnLimpar" class="ghost-btn">Limpar filtros</button></div>
+      <div class="filter-grid">
+        <label><span>Data inicial</span><input id="fDataIni" type="date" value="2025-01-01"></label>
+        <label><span>Data final</span><input id="fDataFim" type="date" value="2025-12-31"></label>
+        <label><span>UF</span><select id="fUf"><option value="">Todas</option></select></label>
+        <label><span>Município</span><select id="fMunicipio"><option value="">Todos</option></select></label>
+        <label><span>BR</span><select id="fBr"><option value="">Todas</option></select></label>
+        <label><span>Classificação</span><select id="fClassificacao"><option value="">Todas</option></select></label>
+        <label><span>Causa</span><select id="fCausa"><option value="">Todas</option></select></label>
+        <label><span>Tipo de acidente</span><select id="fTipo"><option value="">Todos</option></select></label>
+        <label><span>Clima</span><select id="fClima"><option value="">Todos</option></select></label>
+      </div>
+    </section>
+
+    <section class="action-block glass reveal" aria-label="Onde agir agora">
+      <div class="action-head">
+        <div><span class="kicker">Inteligência executiva</span><h2>Onde agir agora</h2><p>Prioridades calculadas a partir do recorte atual dos filtros.</p></div>
+        <div class="impact-method"><strong>Impacto potencial</strong><span>economia social estimada com redução de 10% no foco indicado</span></div>
+      </div>
+      <div class="action-grid">
+        <article class="action-card"><div class="action-rank">01</div><div><span class="action-tag">Causa prioritária</span><h3 id="acaoCausaTitulo">—</h3><p id="acaoCausaTexto">—</p></div><div class="action-impact"><span>Impacto estimado</span><strong id="acaoCausaImpacto">—</strong></div></article>
+        <article class="action-card"><div class="action-rank">02</div><div><span class="action-tag">Tipo de ocorrência</span><h3 id="acaoTipoTitulo">—</h3><p id="acaoTipoTexto">—</p></div><div class="action-impact"><span>Impacto estimado</span><strong id="acaoTipoImpacto">—</strong></div></article>
+        <article class="action-card"><div class="action-rank">03</div><div><span class="action-tag">Foco geográfico</span><h3 id="acaoUfTitulo">—</h3><p id="acaoUfTexto">—</p></div><div class="action-impact"><span>Impacto estimado</span><strong id="acaoUfImpacto">—</strong></div></article>
+      </div>
+      <p class="method-note">Estimativa econômica, não valor contábil observado. Custos médios por gravidade do <a href="https://repositorio.ipea.gov.br/bitstreams/c3b52818-b8bc-4434-962c-27382176ad48/download" target="_blank" rel="noopener">Ipea</a> (dez/2014), corrigidos pelo <a href="https://agenciadenoticias.ibge.gov.br/agencia-sala-de-imprensa/2013-agencia-de-noticias/releases/45612-ipca-vai-a-0-33-em-dezembro-e-fecha-o-ano-em-4-26" target="_blank" rel="noopener">IPCA/IBGE</a> acumulado até dez/2025. Ações podem se sobrepor e seus impactos não devem ser somados.</p>
+    </section>
+
+    <section class="kpis" id="kpiGrid">
+      <article class="kpi glass reveal"><span>Acidentes</span><strong id="kpiAcidentes">—</strong><small id="kpiAcidentesSub">—</small></article>
+      <article class="kpi glass reveal"><span>Mortes</span><strong id="kpiMortes">—</strong><small id="kpiMortesSub">—</small></article>
+      <article class="kpi glass reveal"><span>Feridos</span><strong id="kpiFeridos">—</strong><small id="kpiFeridosSub">—</small></article>
+      <article class="kpi glass reveal"><span>Feridos graves</span><strong id="kpiGraves">—</strong><small id="kpiGravesSub">—</small></article>
+      <article class="kpi glass reveal"><span>Acidentes com morte</span><strong id="kpiFatais">—</strong><small id="kpiFataisSub">—</small></article>
+      <article class="kpi glass reveal"><span>Veículos envolvidos</span><strong id="kpiVeiculos">—</strong><small id="kpiVeiculosSub">—</small></article>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel glass reveal span-2">
+        <div class="panel-head"><div><span class="kicker">Tendência</span><h2>Evolução mensal</h2></div><select id="metricTemporal" class="metric-select"><option value="acidentes">Acidentes</option><option value="mortos">Mortes</option><option value="feridos">Feridos</option><option value="fatais">Acidentes com morte</option></select></div>
+        <div class="chart-wrap tall"><canvas id="chartTemporal"></canvas></div><p class="chart-insight" id="insightTemporal">Analisando o recorte selecionado…</p>
+      </article>
+
+      <article class="panel glass reveal">
+        <div class="panel-head"><div><span class="kicker">Composição</span><h2>Gravidade dos acidentes</h2></div></div>
+        <div class="chart-wrap"><canvas id="chartClassificacao"></canvas></div><p class="chart-insight" id="insightClassificacao">Analisando o recorte selecionado…</p>
+      </article>
+
+      <article class="panel glass reveal">
+        <div class="panel-head"><div><span class="kicker">Geografia</span><h2>Top 10 UFs</h2></div><select id="metricUf" class="metric-select"><option value="acidentes">Acidentes</option><option value="mortos">Mortes</option><option value="graves">Feridos graves</option><option value="letalidade">Mortes / 100 acidentes</option></select></div>
+        <div class="chart-wrap"><canvas id="chartUf"></canvas></div><p class="chart-insight" id="insightUf">Analisando o recorte selecionado…</p>
+      </article>
+
+      <article class="panel glass reveal">
+        <div class="panel-head"><div><span class="kicker">Risco</span><h2>Volume × letalidade por UF</h2></div></div>
+        <div class="chart-wrap"><canvas id="chartScatter"></canvas></div><p class="chart-insight" id="insightScatter">Analisando o recorte selecionado…</p>
+      </article>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel glass reveal">
+        <div class="panel-head"><div><span class="kicker">Fatores</span><h2>Principais causas</h2></div><select id="metricCausa" class="metric-select"><option value="acidentes">Ocorrências</option><option value="mortos">Mortes</option><option value="letalidade">Mortes / 100 acidentes</option></select></div>
+        <div class="chart-wrap tall"><canvas id="chartCausa"></canvas></div><p class="chart-insight" id="insightCausa">Analisando o recorte selecionado…</p>
+      </article>
+      <article class="panel glass reveal">
+        <div class="panel-head"><div><span class="kicker">Dinâmica</span><h2>Tipos de acidente</h2></div><select id="metricTipo" class="metric-select"><option value="acidentes">Ocorrências</option><option value="mortos">Mortes</option><option value="letalidade">Mortes / 100 acidentes</option></select></div>
+        <div class="chart-wrap tall"><canvas id="chartTipo"></canvas></div><p class="chart-insight" id="insightTipo">Analisando o recorte selecionado…</p>
+      </article>
+    </section>
+
+    <section class="grid grid-3">
+      <article class="panel glass reveal"><div class="panel-head"><div><span class="kicker">Calendário</span><h2>Dia da semana</h2></div></div><div class="chart-wrap small"><canvas id="chartDia"></canvas></div><p class="chart-insight" id="insightDia">Analisando o recorte selecionado…</p></article>
+      <article class="panel glass reveal"><div class="panel-head"><div><span class="kicker">Horário</span><h2>Faixa do dia</h2></div></div><div class="chart-wrap small"><canvas id="chartFaixa"></canvas></div><p class="chart-insight" id="insightFaixa">Analisando o recorte selecionado…</p></article>
+      <article class="panel glass reveal"><div class="panel-head"><div><span class="kicker">Ambiente</span><h2>Condição meteorológica</h2></div></div><div class="chart-wrap small"><canvas id="chartClima"></canvas></div><p class="chart-insight" id="insightClima">Analisando o recorte selecionado…</p></article>
+    </section>
+
+    <section class="grid grid-2">
+      <article class="panel glass reveal"><div class="panel-head"><div><span class="kicker">Infraestrutura</span><h2>Tipo de pista</h2></div></div><div class="chart-wrap small"><canvas id="chartPista"></canvas></div><p class="chart-insight" id="insightPista">Analisando o recorte selecionado…</p></article>
+      <article class="panel glass reveal"><div class="panel-head"><div><span class="kicker">Contexto</span><h2>Uso do solo</h2></div></div><div class="chart-wrap small"><canvas id="chartSolo"></canvas></div><p class="chart-insight" id="insightSolo">Analisando o recorte selecionado…</p></article>
+    </section>
+
+    <section class="panel glass reveal">
+      <div class="panel-head"><div><span class="kicker">Prioridade executiva</span><h2>Matriz de risco por causa</h2><p>Frequência e gravidade lado a lado para diferenciar causas recorrentes de causas mais letais.</p></div></div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th>Causa</th><th>Acidentes</th><th>Mortes</th><th>Feridos graves</th><th>Mortes / 100 acidentes</th></tr></thead><tbody id="riskBody"></tbody></table></div>
+    </section>
+
+    <section class="panel glass reveal">
+      <div class="panel-head"><div><span class="kicker">Detalhamento</span><h2>Ranking geográfico</h2></div><select id="rankingModo" class="metric-select"><option value="municipio">Municípios</option><option value="br">BRs</option></select></div>
+      <div class="table-wrap"><table><thead><tr><th>#</th><th id="rankingLabel">Município</th><th>Acidentes</th><th>Mortes</th><th>Feridos graves</th><th>Mortes / 100 acidentes</th></tr></thead><tbody id="rankingBody"></tbody></table></div>
+    </section>
+
+    <footer><span>Fonte: DATATRAN 2025 • Polícia Rodoviária Federal</span><span>Dashboard em HTML, CSS e JavaScript</span></footer>
+  </main>
+  <div id="loading" class="loading"><div class="spinner"></div><span>Preparando análise...</span></div>
+  <script src="data.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
